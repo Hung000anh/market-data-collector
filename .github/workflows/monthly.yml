@@ -1,0 +1,41 @@
+name: Monthly Market Data Collector
+
+# Trigger mỗi tháng vào ngày 1 lúc 22:00 UTC và có thể trigger thủ công
+on:
+  schedule:
+    - cron: "0 22 1 * *"  # 22:00 UTC ngày 1 hàng tháng
+  workflow_dispatch:       # Cho phép trigger thủ công
+
+jobs:
+  run-monthly-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180  # dữ liệu lớn → tăng timeout
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_CLIENT_ANON_KEY: ${{ secrets.SUPABASE_CLIENT_ANON_KEY }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      BATCH_SIZE: 1000
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Setup Python
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4️⃣ Run monthly job
+      - name: Run monthly collector
+        run: |
+          echo "▶ Starting monthly market data collection..."
+          python -m src.jobs.monthly
