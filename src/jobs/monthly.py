@@ -1,5 +1,3 @@
-from config.supabase_client import get_symbols
-
 from src.config.supabase_client import get_symbols, has_price_data, insert_prices
 from src.tradingview.fetch_ohlc import fetch_ohlc
 from src.utils.supabase_utils import ohlc_to_supabase_records
