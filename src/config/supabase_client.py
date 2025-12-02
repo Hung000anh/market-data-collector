@@ -100,6 +100,68 @@ def insert_prices(records, batch_size=1000):
         except Exception as e:
             print(f"❌ Exception in batch {i//batch_size + 1}: {e}")
 
+def get_cftc_contracts():
+    url = f"{SUPABASE_URL}/rest/v1/cftc_contracts"
+
+    params = {
+        "select": "id, contract_name, market_code"
+    }
+
+    headers = {
+        "apikey": SUPABASE_CLIENT_ANON_KEY,
+        "Authorization": f"Bearer {SUPABASE_CLIENT_ANON_KEY}",
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        raise Exception(f"Error fetching symbols: {response.text}")
+
+    data = response.json()
+
+    records = []
+    for item in data:
+        records.append({
+            "id": item['id'],
+            "contract_name": item['contract_name'],
+            "market_code": item['market_code']
+        })
+
+    df = pd.DataFrame(records)
+    return df
+
+def insert_cftc_report(records, batch_size=1000):
+    url = f"{SUPABASE_URL}/rest/v1/cftc_reports?on_conflict=cftc_contract_id,report_date"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+    }
+
+    success = 0
+    failed = 0
+
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i+batch_size]
+
+        try:
+            resp = requests.post(url, headers=headers, data=json.dumps(batch))
+
+            if resp.status_code in [200, 201]:
+                success += len(batch)
+                print(f"✅ Inserted batch {i//batch_size + 1} ({len(batch)} rows)")
+            else:
+                failed += len(batch)
+                print(f"❌ Failed batch {i//batch_size + 1}: {resp.status_code} - {resp.text}")
+
+        except Exception as e:
+            failed += len(batch)
+            print(f"❌ Exception batch {i//batch_size + 1}: {e}")
+
+    return success, failed
+
 if __name__ == "__main__":
-    df = get_symbols(timeframe_filter='1D')
-    print(df)
+    # df = get_symbols(timeframe_filter='1D')
+    # print(df)
+    df_cftc = get_cftc_contracts()
+    print(df_cftc)
