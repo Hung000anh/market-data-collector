@@ -1,3 +1,4 @@
 .env
 __pycache__/ 
 *.pyc
+src/config/__pycache__/supabase_client.cpython-311.pyc
